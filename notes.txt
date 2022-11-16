@@ -1,0 +1,28 @@
+possible solution : 
+
+1 - print the PID's with "ps -F" ("-F" stands for formated form of pids table)
+
+1 . 1 - "ps -F -u root" for root UID  PIDs
+
+1 . 2 - "ps -F -u <username>" for username UID  PIDs
+
+1 . 3 - "ps aux" for all UID PIDs
+
+
+2 - store all PIDs
+
+2 . 1 - store the pids in the pids.txt file 
+
+* side note : u can store the pids in anyname.txt u want
+its even a sage decision to store root's and user's pids in diferent files 
+
+** side note : its inst really necessery to store the pids in a file, but in my (dingle) mind
+its more "safety", for use after for iterate each pid in the proc/[id]/io dir
+
+
+
+3  - Print the proc/[pid]/io dir info
+
+3 . 1 - store the value(info of the [pid] process) of the cmd $(sudo cat /proc/[pid]/io)
+
+3 . 2 - organize the information on table format (to do)
