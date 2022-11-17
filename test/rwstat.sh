@@ -8,6 +8,20 @@ USER="tk"
 rawpids=$(printpidsbyuser $USER)
 #echo $rawpids
 
+#listar todos os pids
+#ls -l /proc | grep "^d" | awk '{print $9}' | grep "^[0-9]"
+
+#declare the array of pids :
+
+#-a stands for an array array
+#-A stands for an array related
+#declare -a pids ;
+
+
+#echo -e $( ps -u $USER | awk '{ if ( $1 != "PID") print $1 ;}' | wc -l )
+#pids[$( ps -u $USER | awk '{ if ( $1 != "PID") print $1 ;}' | wc -l )]
+#echo -e "Size of array : ${#pids[@]} \n"
+
 # '>' for overwrite 
 # '>>' for append
 
@@ -25,10 +39,17 @@ for ((i=0; i<${#rawpids}; i++)); do
     #check if its numeric (a pid properly)
     if [[ $ch =~ $re ]]; then
         echo -n $ch >> pids.txt
+        fullpid="${fullpid}${ch}"
+        #pids+=("$ch")
     else
+        pids+=("$fullpid")
         echo -e "\n" >> pids.txt
+        fullpid=""
+
     fi
 done
+
+#echo pids : ${pids[@]}
 
 
 # 3 . 1
