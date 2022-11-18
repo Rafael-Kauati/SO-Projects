@@ -3,7 +3,7 @@
 source "./readpidsbyuser.sh" 
 
 # 1 . 0
-USER="tk"
+USER="root"
 #Catch all pids by a given user
 rawpids=$(printpidsbyuser $USER)
 #echo $rawpids
@@ -22,11 +22,40 @@ for ((i=0; i<${#rawpids}; i++)); do
     else
         pids+=("$fullpid")
         fullpid=""
-
     fi
 done
 
+# RateR and RateW calculation using pids array
+declare -a rateR
+declare -a rateW
 
+for ((i=0; i<${#pids[@]}; i++)); do
+    cont=${pids[i]}
+    readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
+    writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
+    rateR+=($readb)
+    rateW+=($writeb)
+done
+
+# The value here will obviously have to be changed to a variable derived from the arguments
+# By omission, we'll use 5 seconds (though I think it's supposed to be 10 but I don't like waiting for too long)
+
+s=5
+sleep $s
+
+for ((i=0; i<${#pids[@]}; i++)); do
+    cont=${pids[i]}
+    readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
+    writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
+    # echo "$(($readb/$s)).$(( ($readb*100/$s)%100 ))"
+    # echo "$(($writeb/$s)).$(( ($writeb*100/$s)%100 ))"
+    rateR[i]="$(($readb/$s)).$(( ($readb*100/$s)%100 ))"
+    rateW[i]="$(($writeb/$s)).$(( ($writeb*100/$s)%100 ))"
+done
+
+# Fun fact : using "<< com" and then "com" on separate lines will make it so everything in between is commented
+
+<< com
 
 # 3 . 1
 #iteration to read each pid in the file
@@ -50,6 +79,7 @@ for index in "${pids[@]}" ; do
 
 done
 
+com
 
 echo "Erika~"
 
