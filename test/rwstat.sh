@@ -1,12 +1,94 @@
 #!/bin/bash
 # Fun fact : using "<< com" and then "com" on separate lines will make it so everything in between is commented
 source "./readpidsbyuser.sh" 
+source "./printprocess.sh"
+
+
+### Data zone , to store variables that can be changed with the opts or let by deafult
+
+#for arg in "$@"; do echo $arg ; done
+
+#If shall print on the reverser order of the pids (i guess the reference are the pids)
+reverse=false
+#min value of the pids range
+min=0
+#max value of the pids range
+max=0
+#Number of process to be printed
+total=-1
+#User if its not specified, its used the default null option (all user)
+
+# : --> for opt with arguments
+# ; --> for opt without arguments
+while getopts ":c:s:e:u:m:M:r;w:p:" opt; do
+    case $opt in
+
+        c)
+            regex=$OPTARG
+        ;;
+
+        s)
+        
+        ;;
+
+        e)
+        
+        ;;
+
+        u)
+            user=$OPTARG
+        ;;
+
+        m)
+            min=$OPTARG
+        ;;
+
+        M)
+            max=$OPTARG
+        
+        ;;
+
+        p)
+            total=$OPTARG
+        ;;
+
+        r)
+            reverse=true
+        ;;
+
+        w)
+        
+        ;;
+
+    esac
+done            
+
 
 # 1 . 0
-USER="tk"
 #Catch all pids by a given user
-rawpids=$(printpidsbyuser $USER)
-#echo $rawpids
+if test -z "$user" 
+then
+      #echo "\$user is NULL"
+      rawpids=$( ps aux | awk '{ if ( $2 != "PID") print $2 ;}' )  
+else
+        #echo "\$user is NOT NULL"
+        if [[ user == "root" ]]; then
+            rawpids=$(printpidsbyuser $user)
+
+        else
+            rawpids=$(printpidsbyuser $user)
+
+        fi    
+fi
+
+
+
+
+
+#The number(seconds) to sleep to calculate the rateR and rateW[
+#Assuming that its always passed as the last argument
+for last; do true ; done
+sec=$last
 
 
 # 2 . 1
@@ -20,68 +102,22 @@ for ((i=0; i<${#rawpids}; i++)); do
     if [[ $ch =~ $re ]]; then
         fullpid="${fullpid}${ch}"
     else
-        pids+=("$fullpid")
+        #Only add a pid if the "proc/pid/" exists
+        checkexistence="/proc/$fullpid/"
+        if [ -d "$checkexistence" ] ;
+        then
+            pids+=("$fullpid")
+        fi    
         fullpid=""
+
     fi
 done
 
-# RateR and RateW calculation using pids array
-declare -a rateR
-declare -a rateW
-
-for ((i=0; i<${#pids[@]}; i++)); do
-    cont=${pids[i]}
-    readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
-    writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
-    rateR+=($readb)
-    rateW+=($writeb)
-    #echo "Initial rater n ratew"
-done
 
 
-s=1
-sleep $s
-
-
-# 3 . 1
-#iteration to read each pid in the file
-for p in "${pids[@]}" ; do
-        echo -e "\n\n\n|-------------------------------(iteration : start)----------------------------------\n"
-        pid=$p
-        #just to print the info of the process to compare
-        
-        echo -e "\nsudo cat /proc/$pid/io :\n-------------------------\n$(sudo cat /proc/$pid/io)\n-------------------------\n"
-        printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %20s" "COMM" "PID" "USER" "READB" "WRITEB" "RATER" "RATEW" "DATE"
-
-        #The command (COMM) that casted the process
-        CMD=$(ps -p $pid | awk '{ if ( $4 != "CMD") print $4 ;}' )
-        
-        # The value here will obviously have to be changed to a variable derived from the arguments
-        # By omission, we'll use 5 seconds (though I think it's supposed to be 10 but I don't like waiting for too long)
-        readb=$(sudo cat /proc/${pid}/io | grep "rchar" | awk '{print $2}' )
-        writeb=$(sudo cat /proc/${pid}/io | grep "wchar" | awk '{print $2}' )
-        #The rate of chars that were read on this process
-        rateR[$pid]="$(($readb/$s)).$(( ($readb*100/$s)%100 ))"
-        #The rate of chars that wre write on this process
-        rateW[$pid]="$(($writeb/$s)).$(( ($writeb*100/$s)%100 ))"
-
-        #'READB' column
-        READB=$(sudo cat /proc/$pid/io | awk '{ if ( $1 == "read_bytes:" ) print $2;}' )
-        
-        #'WRITEB' column
-        WRITEB=$(sudo cat /proc/$pid/io | awk '{ if ( $1 == "write_bytes:" ) print $2;}' )
-
-        #the date(still only the hour in hh:mm:ss format, shall modify to catch the month date properly)
-        DATE=$(ps -o lstart -p $pid | awk '{ if ( $1 != "STARTED") print $5,$2,$3,$4; }' )
-        #Print the process info 
-        printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" $CMD $pid $USER $READB $WRITEB "${rateR[$pid]}" "${rateW[$pid]}" $DATE
-
-        echo -e "\n-------------------------------(iteration : end)----------------------------------|\n"
-done
+printprocess $pids $sec
 
 
 
-echo "Erika~"
 
 
- 
