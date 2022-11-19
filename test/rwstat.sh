@@ -34,14 +34,14 @@ for index in "${pids[@]}" ; do
         echo -e "\n\n\n|-------------------------------(iteration : start)----------------------------------\n"
         pid=$index
         #just to print the info of the process to compare
-        echo -e "\nsudo cat /proc/$pid/io :\n-------------------------\n$(sudo cat /proc/$pid/io)\n-------------------------\n"
+        echo -e "\n cat /proc/$pid/io :\n-------------------------\n$(cat /proc/$pid/io)\n-------------------------\n"
         printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %20s" "COMM" "PID" "USER" "READB" "WRITEB" "RATER" "RATEW" "DATE"
         #The command (COMM) that casted the process
         CMD=$(ps -p $pid | awk '{ if ( $4 != "CMD") print $4 ;}' )
         #'READB' column
-        READB=$(sudo cat /proc/$pid/io | awk '{ if ( $1 == "read_bytes:" ) print $2;}' )
+        READB=$( cat /proc/$pid/io | awk '{ if ( $1 == "read_bytes:" ) print $2;}' )
         #'WRITEB' column
-        WRITEB=$(sudo cat /proc/$pid/io | awk '{ if ( $1 == "write_bytes:" ) print $2;}' )
+        WRITEB=$( cat /proc/$pid/io | awk '{ if ( $1 == "write_bytes:" ) print $2;}' )
         #the date(still only the hour in hh:mm:ss format, shall modify to catch the month date properly)
         DATE=$(ps -p $pid | awk '{ if ( $3 != "TIME") print $3; }' )
         #Print the process info 
