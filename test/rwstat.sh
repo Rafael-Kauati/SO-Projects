@@ -1,9 +1,9 @@
 #!/bin/bash
-
+# Fun fact : using "<< com" and then "com" on separate lines will make it so everything in between is commented
 source "./readpidsbyuser.sh" 
 
 # 1 . 0
-USER="root"
+USER="tk"
 #Catch all pids by a given user
 rawpids=$(printpidsbyuser $USER)
 #echo $rawpids
@@ -35,51 +35,51 @@ for ((i=0; i<${#pids[@]}; i++)); do
     writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
     rateR+=($readb)
     rateW+=($writeb)
+    #echo "Initial rater n ratew"
 done
 
-# The value here will obviously have to be changed to a variable derived from the arguments
-# By omission, we'll use 5 seconds (though I think it's supposed to be 10 but I don't like waiting for too long)
 
-s=5
+s=1
 sleep $s
 
-for ((i=0; i<${#pids[@]}; i++)); do
-    cont=${pids[i]}
-    readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
-    writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
-    # echo "$(($readb/$s)).$(( ($readb*100/$s)%100 ))"
-    # echo "$(($writeb/$s)).$(( ($writeb*100/$s)%100 ))"
-    rateR[i]="$(($readb/$s)).$(( ($readb*100/$s)%100 ))"
-    rateW[i]="$(($writeb/$s)).$(( ($writeb*100/$s)%100 ))"
-done
-
-# Fun fact : using "<< com" and then "com" on separate lines will make it so everything in between is commented
-
-<< com
 
 # 3 . 1
 #iteration to read each pid in the file
-for index in "${pids[@]}" ; do
+for p in "${pids[@]}" ; do
         echo -e "\n\n\n|-------------------------------(iteration : start)----------------------------------\n"
-        pid=$index
+        pid=$p
         #just to print the info of the process to compare
-        echo -e "\n cat /proc/$pid/io :\n-------------------------\n$(cat /proc/$pid/io)\n-------------------------\n"
+        
+        echo -e "\nsudo cat /proc/$pid/io :\n-------------------------\n$(sudo cat /proc/$pid/io)\n-------------------------\n"
         printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %20s" "COMM" "PID" "USER" "READB" "WRITEB" "RATER" "RATEW" "DATE"
+
         #The command (COMM) that casted the process
         CMD=$(ps -p $pid | awk '{ if ( $4 != "CMD") print $4 ;}' )
-        #'READB' column
-        READB=$( cat /proc/$pid/io | awk '{ if ( $1 == "read_bytes:" ) print $2;}' )
-        #'WRITEB' column
-        WRITEB=$( cat /proc/$pid/io | awk '{ if ( $1 == "write_bytes:" ) print $2;}' )
-        #the date(still only the hour in hh:mm:ss format, shall modify to catch the month date properly)
-        DATE=$(ps -p $pid | awk '{ if ( $3 != "TIME") print $3; }' )
-        #Print the process info 
-        printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %20s" $CMD $pid $USER $READB $WRITEB "RATER" "RATEW" $DATE
-        echo -e "\n-------------------------------(iteration : end)----------------------------------|\n"
+        
+        # The value here will obviously have to be changed to a variable derived from the arguments
+        # By omission, we'll use 5 seconds (though I think it's supposed to be 10 but I don't like waiting for too long)
+        readb=$(sudo cat /proc/${pid}/io | grep "rchar" | awk '{print $2}' )
+        writeb=$(sudo cat /proc/${pid}/io | grep "wchar" | awk '{print $2}' )
+        #The rate of chars that were read on this process
+        rateR[$pid]="$(($readb/$s)).$(( ($readb*100/$s)%100 ))"
+        #The rate of chars that wre write on this process
+        rateW[$pid]="$(($writeb/$s)).$(( ($writeb*100/$s)%100 ))"
 
+        #'READB' column
+        READB=$(sudo cat /proc/$pid/io | awk '{ if ( $1 == "read_bytes:" ) print $2;}' )
+        
+        #'WRITEB' column
+        WRITEB=$(sudo cat /proc/$pid/io | awk '{ if ( $1 == "write_bytes:" ) print $2;}' )
+
+        #the date(still only the hour in hh:mm:ss format, shall modify to catch the month date properly)
+        DATE=$(ps -o lstart -p $pid | awk '{ if ( $1 != "STARTED") print $5,$2,$3,$4; }' )
+        #Print the process info 
+        printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" $CMD $pid $USER $READB $WRITEB "${rateR[$pid]}" "${rateW[$pid]}" $DATE
+
+        echo -e "\n-------------------------------(iteration : end)----------------------------------|\n"
 done
 
-com
+
 
 echo "Erika~"
 
