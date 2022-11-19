@@ -10,13 +10,12 @@ source "./printprocess.sh"
 
 #If shall print on the reverser order of the pids (i guess the reference are the pids)
 reverse=false
-#min value of the pids range
+#min value of the pids range, if its not specified, its 0 by default
 min=0
-#max value of the pids range
-max=0
+#max value of the pids range, if nost specified, theres no max limit
+max=""
 #Number of process to be printed
-total=-1
-#User if its not specified, its used the default null option (all user)
+total=""
 
 # : --> for opt with arguments
 # ; --> for opt without arguments
@@ -45,7 +44,6 @@ while getopts ":c:s:e:u:m:M:r;w:p:" opt; do
 
         M)
             max=$OPTARG
-        
         ;;
 
         p)
@@ -68,10 +66,10 @@ done
 #Catch all pids by a given user
 if test -z "$user" 
 then
-      #echo "\$user is NULL"
+      #echo "\$user is define"
       rawpids=$( ps aux | awk '{ if ( $2 != "PID") print $2 ;}' )  
 else
-        #echo "\$user is NOT NULL"
+        #echo "\$user is not defined"
         if [[ user == "root" ]]; then
             rawpids=$(printpidsbyuser $user)
 
@@ -82,13 +80,9 @@ else
 fi
 
 
-
-
-
 #The number(seconds) to sleep to calculate the rateR and rateW[
-#Assuming that its always passed as the last argument
-for last; do true ; done
-sec=$last
+#standardizing the seconds argument positions as the first passed
+sec=$1
 
 
 # 2 . 1
@@ -101,20 +95,44 @@ for ((i=0; i<${#rawpids}; i++)); do
     #check if its numeric (a pid properly)
     if [[ $ch =~ $re ]]; then
         fullpid="${fullpid}${ch}"
-    else
-        #Only add a pid if the "proc/pid/" exists
-        checkexistence="/proc/$fullpid/"
-        if [ -d "$checkexistence" ] ;
-        then
-            pids+=("$fullpid")
-        fi    
-        fullpid=""
 
+    else
+        if [[ -n "$max" ]] ;
+        then
+            #Add pid if : pid >= min
+            if (( "$fullpid" >= "$min" && ( "$fullpid" <= "$max" ) )); then
+                #Only add a pid if the "proc/pid/" exists
+
+                checkexistence="/proc/$fullpid/"
+                if [ -d "$checkexistence" ] ;
+                then
+                    pids+=("$fullpid")
+                fi    
+
+                fullpid=""
+            fi
+        else
+            #Add pid if : pid >= min
+            if [[ $fullpid -ge $min ]]; then
+                #Only add a pid if the "proc/pid/" exists
+
+                checkexistence="/proc/$fullpid/"
+                if [ -d "$checkexistence" ] ;
+                then
+                    pids+=("$fullpid")
+                fi    
+
+                fullpid=""
+            fi
+                
+        fi
     fi
+
 done
 
 
 
+#Print the process in table format
 printprocess $pids $sec
 
 
