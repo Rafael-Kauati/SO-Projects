@@ -9,7 +9,7 @@ source "./printprocess.sh"
 #for arg in "$@"; do echo $arg ; done
 
 #If shall print on the reverser order of the pids (i guess the reference are the pids)
-reverse=false
+reverse=0
 #min value of the pids range, if its not specified, its 0 by default
 min=0
 #max value of the pids range, if nost specified, theres no max limit
@@ -41,7 +41,10 @@ do
         ;;
     -p)
         total=$2
-        ;;        
+        ;;
+    -r)
+        reverse=1
+        ;;            
 	esac
 	shift
     
@@ -127,6 +130,26 @@ then
 else
     echo total : $total
 fi       
+
+
+if [[ $reverse -eq 1 ]]; then
+
+    Min=0
+    Max=$(( ${#pids[@]} -1 ))
+
+    while [[ Min -lt Max ]]
+    do
+        # Swap current first and last elements
+        x="${pids[$Min]}"
+        pids[$Min]="${pids[$Max]}"
+        pids[$Max]="$x"
+
+        # Move closer
+        (( Min++, Max-- ))
+    done
+
+    echo reversed order pids : "${pids[@]}"
+fi
 #echo seconds first : $sec
 
 #Print the process in table format
