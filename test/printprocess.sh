@@ -2,10 +2,10 @@
 
 printprocess(){
 
-    
+
 pids=$1
 sec=$2
-
+total=$3
 
 echo -e seconds : $sec
 
@@ -25,11 +25,13 @@ for ((i=0; i<${#pids[@]}; i++)); do
 done
 
 sleep $sec
-
+printed=0
 # 3 . 1
 #iteration to read each pid in the file
 for p in "${pids[@]}" ; do
-        
+        if [[ $printed -eq $total ]]; then
+            break
+        fi    
         echo -e "\n\n\n|-------------------------------(iteration : start)----------------------------------\n"
         pid=$p
         #just to print the info of the process to compare
@@ -67,6 +69,7 @@ for p in "${pids[@]}" ; do
         printf "\n%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" $CMD $pid $USER $READB $WRITEB "${rateR[$pid]}" "${rateW[$pid]}" $DATE
 
         echo -e "\n-------------------------------(iteration : end)----------------------------------|\n"
+        printed=$(($printed+1))
 done
 
 

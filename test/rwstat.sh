@@ -38,7 +38,10 @@ do
         ;;
     -M)
         max=$2
-        ;;    
+        ;;
+    -p)
+        total=$2
+        ;;        
 	esac
 	shift
     
@@ -61,6 +64,8 @@ else
 
         fi    
 fi
+
+ 
 
 
 # 2 . 1
@@ -111,7 +116,18 @@ for ((i=0; i<${#rawpids}; i++)); do
 
 done
 
-echo seconds first : $sec
+
+#echo total : $total
+
+if test -z "$total"
+then
+    #echo total : 0
+    total="${#pids[@]}"
+    echo total : $total
+else
+    echo total : $total
+fi       
+#echo seconds first : $sec
 
 #Print the process in table format
-printprocess $pids $sec
+printprocess $pids $sec $total
