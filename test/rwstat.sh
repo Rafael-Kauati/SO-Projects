@@ -19,57 +19,40 @@ total=""
 
 # : --> for opt with arguments
 # ; --> for opt without arguments
-while getopts ":c:s:e:u:m:M:r;w:p:" opt; do
-    case $opt in
+seconds_index=$#
+while [ "$#" -gt 0 ]
+do  
+    #The number(seconds) to sleep to calculate the rateR and rateW[
+    #standardizing the seconds argument position as the first passed
+    if [[ $# -eq $seconds_index ]]; then
+     #echo $1
+     sec=$1
+    fi
 
-        c)
-            regex=$OPTARG
+	case "$1" in
+	-u)
+		user=$2
+		;;
+	-m)
+        min=$2
         ;;
-
-        s)
-        
-        ;;
-
-        e)
-        
-        ;;
-
-        u)
-            user=$OPTARG
-        ;;
-
-        m)
-            min=$OPTARG
-        ;;
-
-        M)
-            max=$OPTARG
-        ;;
-
-        p)
-            total=$OPTARG
-        ;;
-
-        r)
-            reverse=true
-        ;;
-
-        w)
-        
-        ;;
-
-    esac
-done            
-
+    -M)
+        max=$2
+        ;;    
+	esac
+	shift
+    
+done         
 
 # 1 . 0
 #Catch all pids by a given user
+echo user : $user
 if test -z "$user" 
 then
-      #echo "\$user is define"
+      #echo "\$user is not define"
       rawpids=$( ps aux | awk '{ if ( $2 != "PID") print $2 ;}' )  
 else
-        #echo "\$user is not defined"
+        #echo "\$user is defined"
         if [[ user == "root" ]]; then
             rawpids=$(printpidsbyuser $user)
 
@@ -78,11 +61,6 @@ else
 
         fi    
 fi
-
-
-#The number(seconds) to sleep to calculate the rateR and rateW[
-#standardizing the seconds argument positions as the first passed
-sec=$1
 
 
 # 2 . 1
@@ -99,6 +77,7 @@ for ((i=0; i<${#rawpids}; i++)); do
     else
         if [[ -n "$max" ]] ;
         then
+            #echo max : $max
             #Add pid if : pid >= min
             if (( "$fullpid" >= "$min" && ( "$fullpid" <= "$max" ) )); then
                 #Only add a pid if the "proc/pid/" exists
@@ -112,6 +91,8 @@ for ((i=0; i<${#rawpids}; i++)); do
                 fullpid=""
             fi
         else
+        #echo min : $min
+
             #Add pid if : pid >= min
             if [[ $fullpid -ge $min ]]; then
                 #Only add a pid if the "proc/pid/" exists
@@ -130,12 +111,7 @@ for ((i=0; i<${#rawpids}; i++)); do
 
 done
 
-
+echo seconds first : $sec
 
 #Print the process in table format
 printprocess $pids $sec
-
-
-
-
-

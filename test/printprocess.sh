@@ -2,6 +2,7 @@
 
 printprocess(){
 
+    
 pids=$1
 sec=$2
 
@@ -13,6 +14,7 @@ declare -a rateR
 declare -a rateW
 
 for ((i=0; i<${#pids[@]}; i++)); do
+    
     cont=${pids[i]}
     #checkexistence="/proc/${cont}/"
     readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
@@ -27,6 +29,7 @@ sleep $sec
 # 3 . 1
 #iteration to read each pid in the file
 for p in "${pids[@]}" ; do
+        
         echo -e "\n\n\n|-------------------------------(iteration : start)----------------------------------\n"
         pid=$p
         #just to print the info of the process to compare
