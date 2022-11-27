@@ -1,8 +1,5 @@
 #!/bin/bash
 # Fun fact : using "<< com" and then "com" on separate lines will make it so everything in between is commented
-
-#Small side note: may want to package PID existence verification into a function to keep things clean
-
 source "./readpidsbyuser.sh" 
 
 
@@ -18,31 +15,31 @@ min=0
 max=""
 #Number of process to be printed
 total=""
-#Flag for ordering the table by rate of bytes written by processes
-ratew_order=0
+
+#Regex to be compared if mathces with the COMM column when casted the -c option(by default is null)
+regex=""
+
+#Date and hour of start reference (by default is the value of the first process)
+month=$(ps -o lstart -p 1 | awk '{ if ( $1 != "STARTED") print $2; }' )
+day=$(ps -o lstart -p 1 | awk '{ if ( $1 != "STARTED") print $3; }' )
+hour=$(ps -o lstart -p 1 | awk '{ if ( $1 != "STARTED") print $4; }' )        
+start="${month} ${day} ${hour}"
+
+#Date and hour of end reference (by default if null)
+end=""
 
 # : --> for opt with arguments
 # ; --> for opt without arguments
-
-re='^[0-9]+' #To check whether or not the final argument is a number
-
 seconds_index=$#
-
-last_arg=${@: -1} #Last argument
-
-#Check if last argument is a number.
-#If the last argument is not a number (or a negative number), inform user of usage and terminate
-
-if [[ !(${last_arg} =~ $re ) ]]; then
-    echo "Usage: ./rwstat.sh [options] [number of seconds]"
+re='[0-9]+'
+sec=$1
+#The number(seconds) to sleep to calculate the rateR and rateW[
+#standardizing the seconds argument position as the first passed
+if [[ ! "$sec" =~ $re ]]; then 
+    #echo $sec
+    echo "O primeiro argumento deve ser o valor (em segundos) para o cálculo das taxas de rateR e rateW"
     exit
-#Check if number of seconds is zero
-elif [[ $last_arg == 0 ]]; then
-    echo "ERROR: Número de segundos deve ser positivo"
-    exit
-fi
-
-sec=$last_arg
+fi    
 
 while [ "$#" -gt 0 ]
 do  
@@ -61,24 +58,37 @@ do
         ;;
     -r)
         reverse=1
+        ;;            
+	-c)
+        regex=$2
         ;;
-    -w)
-        ratew_order=1
-        ;;   
-	esac
+    -s)
+        start=$2
+        exit_start=$(date -d "$start" +%s)
+        if [[ "$?" -eq 1 ]]; then
+            echo "Referência de data e hora de início invalido (Mês dia hh:mm:ss)"
+            exit
+        fi
+        ;;
+    -e)
+        end=$2
+        exit_end=$(date -d "$end" +%s)
+        if [[ "$?" -eq 1 ]]; then
+            echo "Referência de data e hora de fim invalido (Mês dia hh:mm:ss)"
+            exit
+        fi
+        ;;        
+    esac
 	shift
     
-done         
+done      
 
 # 1 . 0
 #Catch all pids by a given user
-echo user : $user
 if test -z "$user" 
 then
-      #echo "\$user is not defined"
       rawpids=$( ps aux | awk '{ if ( $2 != "PID") print $2 ;}' )  
 else
-        #echo "\$user is defined"
         if [[ user == "root" ]]; then
             rawpids=$(printpidsbyuser $user)
 
@@ -88,14 +98,19 @@ else
         fi    
 fi
 
- 
-
+# Note: rawpids are already ordered in increasing order
 
 # 2 . 1
 #regular expressionto to check if the var is a numeric or not
 re='^[0-9]+$'
 #iteration the store each pids into the file
+
+declare -a pids
+
+#This for loop also builds the PIDs array according to a few established parameters in the option arguments
+#iteration the store each pids into the file
 for ((i=0; i<${#rawpids}; i++)); do
+    
     #cast the var
     ch="${rawpids:$i:1}"
     #check if its numeric (a pid properly)
@@ -103,59 +118,196 @@ for ((i=0; i<${#rawpids}; i++)); do
         fullpid="${fullpid}${ch}"
 
     else
-        if [[ -n "$max" ]] ;
-        then
-            #echo max : $max
-            #Add pid if : pid >= min
-            if (( "$fullpid" >= "$min" && ( "$fullpid" <= "$max" ) )); then
-                #Only add a pid if the "proc/pid/" exists
+        #Check if the dir exist
+        dir="/proc/${fullpid}/"
+        if [[ -d $dir ]]; then
 
-                checkexistence="/proc/$fullpid/"
-                if [ -d "$checkexistence" ] ;
-                then
-                    pids+=("$fullpid")
-                fi    
+            #Check if the io file exists
+            iofile="/proc/${fullpid}/io"
+            if [[ -e $iofile ]]; then
+            #echo $(sudo cat $iofile)
 
-                fullpid=""
+                #Check if the regex expression is defined (by the -c option)
+                if [[ "$regex" != "" ]]; then
+
+                    #Check if the regex match with the command of the process
+                    CMD=$(sudo cat /proc/${fullpid}/comm)
+                    if [[ $CMD == $regex ]]; then
+                        #Check if the (current) pid is greater or equal of the min pid range value (by default is 0)   
+                        if [[ "$fullpid" -ge "$min" ]]; then
+                            #Check if a max value of pid range is defined
+                            if [[ "$max" != "" ]]; then
+                                    #Check if (current) pid is less or equal to the max value range
+                                    if [[ "$fullpid" -gt "$max" ]]; then
+                                        break
+                                    fi  
+                                    #Check if a current pid process is greater or erqual than the start reference
+                                    start_by_sec=$(date -d "$start" +%s)
+                                    #The date info of the curr pid
+                                    month=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $2; }' )
+                                    day=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $3; }' )
+                                    hour=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $4; }' )        
+                                    DATE="${month} ${day} ${hour}"
+                                    date_pid_sec=$(date -d  "$DATE" +%s)
+                                    if [[ "$date_pid_sec" -ge "$start_by_sec" ]]; then
+                                            #Check if theres an end date and hour reference define
+                                            if [[ "$end" != "" ]]; then
+                                                end_by_sec=$(date -d "$end" +%s)
+                                                #Check if the date of the process of the current pid is greater than the end reference
+                                                if [[ "$date_pid_sec" -gt "$end_by_sec" ]]; then
+                                                    echo "end break : $DATE"
+                                                    break
+                                                fi    
+                                            fi
+                                            pids+=("$fullpid")
+                                            fullpid=""
+                                    #Else : theres n start reference
+                                    else
+                                        fullpid=""
+                                    fi
+
+                            #Theres no max range value defined
+                            else
+                                    #Check if a current pid process is greater or erqual than the start reference
+                                    start_by_sec=$(date -d "$start" +%s)
+                                    #The date info of the curr pid
+                                    month=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $2; }' )
+                                    day=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $3; }' )
+                                    hour=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $4; }' )        
+                                    DATE="${month} ${day} ${hour}"
+                                    date_pid_sec=$(date -d  "$DATE" +%s)
+                                    if [[ "$date_pid_sec" -ge "$start_by_sec" ]]; then
+                                            #Check if theres an end date and hour reference define
+                                            if [[ "$end" != "" ]]; then
+                                                end_by_sec=$(date -d "$end" +%s)
+                                                #Check if the date of the process of the current pid is greater than the end reference
+                                                if [[ "$date_pid_sec" -gt "$end_by_sec" ]]; then
+                                                    break
+                                                fi    
+                                            fi    
+                                            #echo max pid range value : $max
+                                            #echo fullpid $fullpid
+                                            pids+=("$fullpid")
+                                            fullpid=""
+                                    #Else : theres n start reference
+                                    else
+                                        fullpid=""
+                                    fi
+                            fi
+
+                        else
+                            fullpid=""
+                        fi
+                    fi
+
+                #If theres no regex value defined to be compared                    
+                else
+                        #Check if the (current) pid is greater or equal of the min pid range value (by default is 0)   
+                        if [[ "$fullpid" -ge "$min" ]]; then
+                            #Check if a max value of pid range is defined
+                            if [[ "$max" != "" ]]; then
+                                #Check if (current) pid is less or equal to the max value range
+                                if [[ "$fullpid" -gt "$max" ]]; then
+                                    echo "end break : $DATE"
+
+                                    break
+                                fi
+
+                                    #Check if a current pid process is greater or erqual than the start reference
+                                    start_by_sec=$(date -d "$start" +%s)
+                                    #The date info of the curr pid
+                                    month=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $2; }' )
+                                    day=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $3; }' )
+                                    hour=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $4; }' )        
+                                    DATE="${month} ${day} ${hour}"
+                                    date_pid_sec=$(date -d  "$DATE" +%s)
+                                    if [[ "$date_pid_sec" -ge "$start_by_sec" ]]; then
+                                            #Check if theres an end date and hour reference define
+                                            if [[ "$end" != "" ]]; then
+                                                end_by_sec=$(date -d "$end" +%s)
+                                                #Check if the date of the process of the current pid is greater than the end reference
+                                                if [[ "$date_pid_sec" -gt "$end_by_sec" ]]; then
+                                                    break
+                                                fi    
+                                            fi
+                                            pids+=("$fullpid")
+                                            fullpid=""
+                                    #Else : theres n start reference
+                                    else
+                                        fullpid=""
+                                    fi
+                            #Theres no max range value defined       
+                            else
+                                
+                                #Check if a current pid process is greater or erqual than the start reference
+                                    start_by_sec=$(date -d "$start" +%s)
+                                    #The date info of the curr pid
+                                    month=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $2; }' )
+                                    day=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $3; }' )
+                                    hour=$(ps -o lstart -p $fullpid | awk '{ if ( $1 != "STARTED") print $4; }' )        
+                                    DATE="${month} ${day} ${hour}"
+                                    date_pid_sec=$(date -d  "$DATE" +%s)
+                                    if [[ "$date_pid_sec" -ge "$start_by_sec" ]]; then
+                                            #Check if theres an end date and hour reference define
+                                            if [[ "$end" != "" ]]; then
+                                                end_by_sec=$(date -d "$end" +%s)
+                                                #Check if the date of the process of the current pid is greater than the end reference
+                                                if [[ "$date_pid_sec" -gt "$end_by_sec" ]]; then
+                                                    break
+                                                fi    
+                                            fi    
+                                            #echo max pid range value : $max
+                                            #echo fullpid $fullpid
+                                            pids+=("$fullpid")
+                                            fullpid=""
+                                    #Else : theres n start reference
+                                    else
+                                        fullpid=""
+                                    fi
+
+                            fi
+
+                        else
+                            
+                            fullpid=""
+                        fi
+
+                fi
+
             fi
+
         else
-        #echo min : $min
-
-            #Add pid if : pid >= min
-            if [[ $fullpid -ge $min ]]; then
-                #Only add a pid if the "proc/pid/" exists
-
-                checkexistence="/proc/$fullpid/"
-                if [ -d "$checkexistence" ] ;
-                then
-                    pids+=("$fullpid")
-                fi    
-
-                fullpid=""
-            fi
-                
+            fullpid=""
         fi
-    fi
 
+    fi
 done
 
 
 
 
+
+
+
+
+
 # RateR and RateW calculation using pids array
+
 declare -A rateR
 declare -A rateW
 
 
 for ((i=0; i<${#pids[@]}; i++)); do
-    
     cont=${pids[i]}
     checkexistence="/proc/${cont}/"
     readb=0
     writeb=0
     if [ -d $checkexistence ]; then
-        readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
-        writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
+        iofile="/proc/${cont}/io"
+        if [ -e $iofile ]; then
+            readb=$(sudo cat /proc/${cont}/io | grep "rchar" | awk '{print $2}' )
+            writeb=$(sudo cat /proc/${cont}/io | grep "wchar" | awk '{print $2}' )
+        fi
     fi
     rateR[$cont]=$readb
     rateW[$cont]=$writeb
@@ -166,13 +318,16 @@ sleep $sec
 
 for ((i=0; i<${#pids[@]}; i++)); do
         pid=${pids[i]}
+        checkexistence="/proc/${pid}/"
         readb=0
         writeb=0
         if [ -d $checkexistence ]; then
-            readb=$(sudo cat /proc/${pid}/io | grep "rchar" | awk '{print $2}' )
-            writeb=$(sudo cat /proc/${pid}/io | grep "wchar" | awk '{print $2}' )
+            iofile="/proc/${pid}/io"
+            if [ -e $iofile ]; then
+                readb=$(sudo cat /proc/${pid}/io | grep "rchar" | awk '{print $2}' )
+                writeb=$(sudo cat /proc/${pid}/io | grep "wchar" | awk '{print $2}' )
+            fi
         fi
-
         delta_readB=$(( $readb - ${rateR[$pid]} )) #Difference between previous and current read byte values
         delta_writeB=$(( $writeb - ${rateW[$pid]} )) #Same but with write byte values
 
@@ -180,32 +335,16 @@ for ((i=0; i<${#pids[@]}; i++)); do
 
         rateR[$pid]=$(( $delta_readB*100/$sec  ))
 
-        #Less cumbersome method to obtain floating point arithmetic result
-        #rateR[$pid]=$( bc <<< "scale=2; $delta_readB/$sec" )
-
         #Incomplete computation of rate of read bytes so that it may be compared without much complication
 
         rateW[$pid]=$(( $delta_writeB*100/$sec ))
-
-        #rateW[$pid]=$( bc <<< "scale=2; $delta_writeB/$sec" )
-        #echo rateR of pid $pid : ${rateR[$pid]}
-        #echo rateW of pid $pid : ${rateW[$pid]}
-
 done
 
-#echo total : $total
-
-#Check array elements
-<< com 
-for ((i=0; i<${#pids[@]}; i++)); do
-    echo ${pids[i]} : ${rateR[i]} : ${rateW[i]} 
-done
-com
 
 
-echo original PIDs : "${pids[@]}"
 
-#---Sorting by reading rate using an improved but slow sorting method
+
+#---Sorting by reading rate using an improvised but slow sorting method
 if [[ $ratew_order -eq 0 ]]
 then
     one_before_last=$(( ${#pids[@]} - 1 ))
@@ -229,11 +368,9 @@ then
         pids[$max_ind]=$tmp
     done
 
-echo PIDs after rateR-based sorting : "${pids[@]}"
-
 #---Sorting by write rate using an improvised but slow sorting method
 
-#rateW sorting overwrites any rateR sorting
+#rateW sorting overrides any rateR sorting
 
 else
     one_before_last=$(( ${#pids[@]} - 1 ))
@@ -256,7 +393,6 @@ else
         pids[i]=${pids[$max_ind]}
         pids[$max_ind]=$tmp
     done
-    echo after rateW order PIDs: ${pids[@]}
 fi
 
 #Divide by 100 to get actual rate values
@@ -264,8 +400,6 @@ fi
 for i in ${pids[@]}; do
     rateW[$i]=$( bc <<< "scale=2; ${rateW[$i]}/100" )
     rateR[$i]=$( bc <<< "scale=2; ${rateR[$i]}/100" )
-    echo "rateR for PID $i : ${rateR[$i]}"
-    #echo "rateW for PID $i : ${rateW[$i]}"
 done
 
 
@@ -288,53 +422,14 @@ if [[ $reverse -eq 1 ]]; then
         # Move closer
         (( Min++, Max-- ))
     done
-    echo reversed PIDs : "${pids[@]}"
 fi
 
 
 
 
 
-echo "seconds first : $sec"
 
-source "./printprocess.sh"
-
-if test -z "$total"
-then
-    #echo total : 0
-    #total="${#pids[@]}"
-    #echo total : $total
-     #Print the process in table format
-    #            $1            $2            $3               
-    printprocess "${pids[@]}"  "${rateR[@]}" "${rateW[@]}"  
-
-else
-    echo total defined : $total
-    declare -a finalPids
-    n=0
-    for ((i=0;i<${#pids[@]};i++)){
-        if [[ $n -eq $total ]]; then
-        break
-        fi
-        pid=${pids[i]}
-        finalPids+=($pid)
-        echo pid : $n
-        echo final pids : ${finalPids[@]}
-
-           n=$((n+1)) 
-    }
-    echo end on pids : ${finalPids[@]}
-    #            $1                $2      $3            $4              
-    printprocess "${finalPids[@]}" "sep"   "${rateR[@]}" "${rateW[@]}"
-    #source "./testargs.sh"
-
-    #func ${finalPids[@]}
+source "./printprocess_edit.sh"
 
 
-    #pids=${finalPids[@]}
-    #set -v -x
-    #Print the process in table format
-
-fi    
-
-com
+printprocess_edit pids rateR rateW total
