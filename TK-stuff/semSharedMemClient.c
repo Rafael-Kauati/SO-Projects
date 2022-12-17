@@ -170,7 +170,6 @@ static bool waitFriends(int id)
     //Should we fork the n clients here ?
     printf("\nClient n° : %d",n);
 
-    //if( n == 0L ){
     if(sh->st.tableClients ==  0){    
         first = true ;
         sh->fSt.st.clientStat[n] = WAIT_FOR_FRIENDS;
@@ -185,10 +184,13 @@ static bool waitFriends(int id)
     }
     //Should i change the flags here ?
     if( sh->st.tableClients == TABLESIZE ){
-        dosomethingamazing();
-        //This shit is the state
-        sh->fSt.st.clientStat[n]  =
         tableLast = id ;
+        if ( semDown (semgid, sh->friendsArrived) == -1){
+            perror("Error on the Down semaphore\nLast client coulnt notify");
+            exit (EXIT_FAILURE);
+        }
+        //Should i change the state of the last client ???
+        sh->fSt.st.clientStat[n]  =
     }
 
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
