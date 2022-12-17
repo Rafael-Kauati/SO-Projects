@@ -3,3 +3,5 @@ semaphore_restaurant/src linguist-vendored
 
 TK-stuff/* linguist-documentation=false
 TK-stuff/* linguist-vendored
+
+*.c linguist-detectable=true
