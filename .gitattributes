@@ -1,2 +1,5 @@
-semaphore_restaurant/* linguist-documentation=false
-semaphore_restaurant/* linguist-vendored
+semaphore_restaurant/src linguist-documentation=false
+semaphore_restaurant/src linguist-vendored
+
+TK-stuff/* linguist-documentation=false
+TK-stuff/* linguist-vendored
