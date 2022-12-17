@@ -16,8 +16,7 @@ Operative (Not so operative) Systems Projects Repository  22/23
 
 <h3>On semSharedMemClient.c : </h3>
 
-
- <p>Complete the functions : waitFriends() , orderFood() , waitFood() and waitAndPay() </p>
+ <p>Complete the functions :  orderFood() , waitFood() and waitAndPay() </p>
 
  <h3>On semSharedMemWaiter.c : </h3>
 
@@ -26,6 +25,9 @@ Operative (Not so operative) Systems Projects Repository  22/23
 
 #
 <h1>Doing : </h1>
+
+waitFriends()
+
 <h1>Done : </h1>
 
 ![alt text](https://xtech.nikkei.com/it/article/NEWS/20061114/253554/DukeTuxXmas.jpg?__scale=w:800,h:662&_sh=02f0ab0e60)
