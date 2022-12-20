@@ -179,13 +179,15 @@ static bool waitFriends(int id)
     
     // If its the last client :
     // Unlock the all other clients
-    if(sh->st.tableClients ==  TABLESIZE){  
-        tableFirst = id ; 
+    //if(sh->st.tableClients ==  TABLESIZE){  
+        //Erika says : how do i Up all the semaphores (excluding the last client)???
         if( semUp(semgid, sh->friendsArrived) == -1 ){
             perror("Error on the Up semaphore\nFirst's client couldnt wait");
             exit (EXIT_FAILURE);
         }
-    }
+    //}
+
+
     
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
     { perror ("error on the up operation for semaphore access (CT)");
@@ -204,7 +206,6 @@ static bool waitFriends(int id)
             perror("Error on the Down semaphore\nLast client couldnt notify");
             exit (EXIT_FAILURE);
         }
-            //Should i change the state of the last client ???
     }
 
     
