@@ -167,40 +167,46 @@ static bool waitFriends(int id)
     }
 
     /* insert your code here */
-    //Should we fork the n clients here ?
-    printf("\nClient n° : %d",n);
 
-    if(sh->st.tableClients ==  0){    
+    printf("\nClient n° : %d",n);
+    
+    // Just to check if the client is the first 
+    if(sh->st.tableClients == 0){
+        sh->fSt.st.clientStat[id] = WAIT_FOR_FRIENDS;
+        tableFirst = id;
         first = true ;
-        sh->fSt.st.clientStat[n] = WAIT_FOR_FRIENDS;
+    }
+    
+    // If its the last client :
+    // Unlock the all other clients
+    if(sh->st.tableClients ==  TABLESIZE){  
         tableFirst = id ; 
         if( semUp(semgid, sh->friendsArrived) == -1 ){
-            perror("Error on the Up semaphore\nFirst client couldnt wait");
+            perror("Error on the Up semaphore\nFirst's client couldnt wait");
             exit (EXIT_FAILURE);
         }
-        while ( codifcaoparaeseprarpelosoutros() )
-        //This shit is the state
-        
     }
-    //Should i change the flags here ?
-    if( sh->st.tableClients == TABLESIZE ){
-        tableLast = id ;
-        if ( semDown (semgid, sh->friendsArrived) == -1){
-            perror("Error on the Down semaphore\nLast client coulnt notify");
-            exit (EXIT_FAILURE);
-        }
-        //Should i change the state of the last client ???
-        sh->fSt.st.clientStat[n]  =
-    }
-
+    
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
     { perror ("error on the up operation for semaphore access (CT)");
         exit (EXIT_FAILURE);
     }
-    //Should i change the flags here ?
-
 
     /* insert your code here */
+
+    sh->st.tableClients ++ ;
+    
+    // If its not the last client :
+    // Lock the process, until the last one reaches the mutex zone
+    if( sh->st.tableClients !=  TABLESIZE){
+        tableLast = id ;
+        if ( semDown (semgid, sh->friendsArrived) == -1){
+            perror("Error on the Down semaphore\nLast client couldnt notify");
+            exit (EXIT_FAILURE);
+        }
+            //Should i change the state of the last client ???
+    }
+
     
     return first;
 }
@@ -329,4 +335,3 @@ static void waitAndPay (int id)
     }
 
 }
-
