@@ -32,13 +32,23 @@ DOWN(semaphore S)
     - Caso seja o último, incrementar semáforo FRIENDSARRIVED e permitir o avanço dos clientes para a sua próxima etapa de ciclo de vida -> semUp(FRIENDSARRIVED) * TABLESIZE-1.
     - Esperar pela chegada de todos os clientes, se não for último cliente -> semDown(FRIENDSARRIVED).
 
-- Fase 2: Pedido de comida -> orderFood()
+- Fase 2: Pedido de comida
+
+>> Pedido do primeiro cliente -> orderFood()
 
 > Atualização de estado do cliente
     - Atualizar estado do primeiro cliente para FOOD_REQUEST
 > Sincronização
     - foodRequest é levantado (foodRequest = 1);
     - Incrementar semáforo WAITERREQUEST e permitir avanço da entidade Waiter
->> Esperar por comida -> waitFood() 
+
+>> Esperar por comida -> waitFood()
+
+> Atualização de estado do cliente
+    - Atualizar estado do cliente para WAIT_FOR_FOOD
+> Sincronização
+    - semDown(FOODARRIVED), esperar pela chegada de comida
+
+[waitFood() é completado numa fase posterior]
 
 (Por completar...)
