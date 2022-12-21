@@ -167,6 +167,7 @@ static bool waitFriends(int id)
     }
 
     /* insert your code here */
+    
 
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
     { perror ("error on the up operation for semaphore access (CT)");

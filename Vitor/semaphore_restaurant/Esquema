@@ -1,0 +1,44 @@
+
+INTERPRETAÇÃO DE LÓGICA INTERNA DE OPERAÇÕES ATÓMICAS DE SEMÁFOROS A CONSIDERAR:
+
+semaphore S é um unsigned int.
+<pseudo-código>
+UP(semaphore S)
+{
+    S++;
+}
+
+DOWN(semaphore S)
+{
+    while(S <= 0) // Espera até S ser incrementado.
+    ;
+    S--;
+}
+
+- Fase 0: Inicialização de Waiter e Chef
+> Sincronização
+    - Chef realiza semDown(WAITORDER), Chef espera por pedido de waiter;
+    - Waiter realiza semDown(WAITREQUEST), Waiter espera por qualquer pedido;
+    - Operações down realizadas em funções wait() respetivas das entidades Chef e Waiter.
+
+- Fase 1: Chegada dos clientes/amigos -> waitFriends()
+
+> Atualização de estado de clientes
+    - Incrementar nº de clientes na mesa em memória partilhada -> tableClients++.
+    - Atualizar estado de cliente (clientStat[id]) para WAIT_FOR_FRIENDS.
+    - Verificar se cliente é o primeiro e registar em memória partilhada, alterar valor de para first = true.
+    - Verificar se cliente é o último (se tableClients == TABLESIZE) e registar em memória partilhada.
+> Sincronização
+    - Caso seja o último, incrementar semáforo FRIENDSARRIVED e permitir o avanço dos clientes para a sua próxima etapa de ciclo de vida -> semUp(FRIENDSARRIVED) * TABLESIZE-1.
+    - Esperar pela chegada de todos os clientes, se não for último cliente -> semDown(FRIENDSARRIVED).
+
+- Fase 2: Pedido de comida -> orderFood()
+
+> Atualização de estado do cliente
+    - Atualizar estado do primeiro cliente para FOOD_REQUEST
+> Sincronização
+    - foodRequest é levantado (foodRequest = 1);
+    - Incrementar semáforo WAITERREQUEST e permitir avanço da entidade Waiter
+>> Esperar por comida -> waitFood() 
+
+(Por completar...)
