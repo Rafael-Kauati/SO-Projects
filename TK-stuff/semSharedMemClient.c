@@ -175,6 +175,7 @@ static bool waitFriends(int id)
         sh->fSt.st.clientStat[id] = WAIT_FOR_FRIENDS;
         tableFirst = id;
         first = true ;
+
     }
     
     // If its the last client :
@@ -196,12 +197,13 @@ static bool waitFriends(int id)
 
     /* insert your code here */
 
-    sh->st.tableClients ++ ;
+    //sh->st.tableClients ++ ;
     
     // If its not the last client :
     // Lock the process, until the last one reaches the mutex zone
     if( sh->st.tableClients !=  TABLESIZE){
         tableLast = id ;
+        sh->st.tableClients ++ ;
         if ( semDown (semgid, sh->friendsArrived) == -1){
             perror("Error on the Down semaphore\nLast client couldnt notify");
             exit (EXIT_FAILURE);
