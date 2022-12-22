@@ -177,9 +177,9 @@ static void processOrder ()
     /* insert your code here */
 
     // Sinalizar pedido a waiter
-    
+
     if (semUp (semgid, sh->waiterRequest) == -1) {                                                      
-        perror ("error on the up operation for semaphore access (PT)");
+        perror ("error on the up operation for semaphore access waiterRequest (PT)");
         exit (EXIT_FAILURE);
     }
 }

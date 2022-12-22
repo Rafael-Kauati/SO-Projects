@@ -36,7 +36,7 @@ DOWN(semaphore S)
 > Atualização de estado de clientes
     - Incrementar nº de clientes na mesa em memória partilhada -> tableClients++.
     - Atualizar estado de cliente (clientStat[id]) para WAIT_FOR_FRIENDS.
-    - Verificar se cliente é o primeiro e registar em memória partilhada, alterar valor de para first = true.
+    - Verificar se cliente é o primeiro e registar em memória partilhada, alterar valor first = true.
     - Verificar se cliente é o último (se tableClients == TABLESIZE) e registar em memória partilhada.
 > Sincronização
     - Caso seja o último, incrementar semáforo FRIENDSARRIVED e permitir o avanço dos clientes para a sua próxima etapa de ciclo de vida -> semUp(FRIENDSARRIVED) * TABLESIZE-1.

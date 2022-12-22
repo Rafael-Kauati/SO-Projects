@@ -167,7 +167,26 @@ static bool waitFriends(int id)
     }
 
     /* insert your code here */
-    
+
+    sh->fSt.tableClients++;
+    sh->fSt.st.clientStat[id] = WAIT_FOR_FRIENDS; // Atualizar estado
+    saveState(nFic, &sh->fSt);
+
+    if(sh->fSt.tableClients == 1)
+    {
+        first = true;
+        sh->fSt.tableFirst = id;
+    }
+    if(sh->fSt.tableClients == TABLESIZE) // Para gerir corretamente o caso de TABLESIZE ser 1, optou-se por "if" em vez de "else if"
+    {
+        sh->fSt.tableLast = id;
+        for(int i = 0; i < TABLESIZE; i++) // Altera valor interno do semáforo para 1, incrementando conforme o número de amigos que chegaram
+            if (semUp (semgid, sh->friendsArrived) == -1)                                                      
+            { 
+                perror ("error on the up operation for semaphore access friendsArrived (CT)");
+                exit (EXIT_FAILURE);
+            }
+    }
 
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
     { perror ("error on the up operation for semaphore access (CT)");
@@ -175,6 +194,13 @@ static bool waitFriends(int id)
     }
 
     /* insert your code here */
+
+    // Esperar por amigos, último amigo a chegar não espera pois o semáforo friendsArrived terá o valor 1 nesse momento
+
+    if (semDown (semgid, sh->friendsArrived) == -1)                                                      
+    { perror ("error on the down operation for semaphore access friendsArrived (CT)");
+        exit (EXIT_FAILURE);
+    }
 
     return first;
 }
