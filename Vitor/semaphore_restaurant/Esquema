@@ -132,7 +132,6 @@ Com o levantamento do semáforo FOODARRIVED:
     - Incrementar tableFinishEat.
 
 > Atualizar estado de Cliente(s) (dentro do primeiro mutex)
-    - Atualizar estado de cliente para FINISHED.
     - Se não for o último cliente a ACABAR DE COMER, atualizar estado de cliente para WAIT_FOR_OTHERS
 
 > Sincronização

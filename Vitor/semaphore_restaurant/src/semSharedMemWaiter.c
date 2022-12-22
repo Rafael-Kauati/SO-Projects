@@ -264,7 +264,7 @@ static void takeFoodToTable ()
 
     for(int i = 0; i < TABLESIZE; i++)
         if (semUp (semgid, sh->foodArrived) == -1)  {
-        perror ("error on the up operation for semaphore access foodArrived (WT)");
+            perror ("error on the up operation for semaphore access foodArrived (WT)");
             exit (EXIT_FAILURE);
         }
     
