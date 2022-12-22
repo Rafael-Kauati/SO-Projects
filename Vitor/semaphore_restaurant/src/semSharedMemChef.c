@@ -117,12 +117,28 @@ static void waitForOrder ()
 {
     /* insert your code here */
 
+    // Esperar por pedido de Waiter
+
+    if (semDown (semgid, sh->waitOrder) == -1) {                                                      
+        perror ("error on the down operation for semaphore access waitOrder (PT)");
+        exit (EXIT_FAILURE);
+    }
+
     if (semDown (semgid, sh->mutex) == -1) {                                                      /* enter critical region */
         perror ("error on the up operation for semaphore access (PT)");
         exit (EXIT_FAILURE);
     }
 
     /* insert your code here */
+
+    // Atualizar estado
+
+    if(sh->fSt.foodOrder) // Necessidade de flag questionável
+    {
+        sh->fSt.foodOrder = 0;
+        sh->fSt.st.chefStat = COOK;
+        saveState(nFic, &sh->fSt);
+    }
 
     if (semUp (semgid, sh->mutex) == -1) {                                                      /* exit critical region */
         perror ("error on the up operation for semaphore access (PT)");
@@ -147,11 +163,24 @@ static void processOrder ()
 
     /* insert your code here */
 
+    // Atualizar estado
+
+    sh->fSt.st.chefStat = REST;
+    sh->fSt.foodReady = 1;
+    saveState(nFic, &sh->fSt);
+
     if (semUp (semgid, sh->mutex) == -1) {                                                      /* exit critical region */
         perror ("error on the up operation for semaphore access (PT)");
         exit (EXIT_FAILURE);
     }
 
     /* insert your code here */
+
+    // Sinalizar pedido a waiter
+    
+    if (semUp (semgid, sh->waiterRequest) == -1) {                                                      
+        perror ("error on the up operation for semaphore access (PT)");
+        exit (EXIT_FAILURE);
+    }
 }
 

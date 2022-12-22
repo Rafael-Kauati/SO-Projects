@@ -52,7 +52,7 @@ DOWN(semaphore S)
     - Atualizar estado do primeiro cliente para FOOD_REQUEST
 > Sincronização
     - foodRequest é levantado (foodRequest = 1);
-    - Incrementar semáforo WAITREQUEST e permitir avanço da entidade Waiter
+    - Incrementar semáforo WAITERREQUEST e permitir avanço da entidade Waiter
 
 >> Esperar por comida -> waitFood()
 
@@ -64,7 +64,7 @@ DOWN(semaphore S)
 [waitFood() é completado numa fase posterior]
 
 >> Processamento de pedido de comida por Waiter - waitForClientOrChef()
-Com o levatamento do semáforo WAITREQUEST:
+Com o levatamento do semáforo WAITERREQUEST:
     - Caso foodRequest == 1, alterar foodRequest para 0 e retornar valor FOODREQ.
 
 - 
@@ -98,7 +98,9 @@ Após um tempo aleatório de cozedura:
     - Atualizar estado Chef para REST
 > Sincronização
     - Set foodReady = 1.
-    - semUp(WAITREQUEST), sinalizar Waiter de que a comida está pronta.
+    - semUp(WAITERREQUEST), sinalizar Waiter de que a comida está pronta.
+
+Ciclo de vida do Chef termina.
 
 - 
 - Fase 5: Entrega de comida aos Clientes
@@ -113,7 +115,7 @@ Com o levantamento do semáforo WAITREQUEST:
 > Atualizar estado de Waiter
     - Atualizar estado Waiter para TAKE_TO_TABLE.
 > Sincronização
-    - semUp(FOODARRIVED), sinalizar clientes à espera de comida da sua chegada.
+    - semUp(FOODARRIVED) * TABLESIZE, sinalizar clientes à espera de comida.
 
 - 
 - Fase 6: Consumo de comida pelos Clientes
