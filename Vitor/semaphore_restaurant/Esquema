@@ -15,9 +15,19 @@ DOWN(semaphore S)
     S--;
 }
 
+
+>>>>
+>>>> Após atualização de estados, chamar saveState() para imprimir estados atuais de todas as entidades
+>>>>
+
+>>>>
+>>>> Cada vez que Waiter entra em waitForClientOrChef(), estado de Waiter tem que ser alterado para WAIT_FOR_REQUEST
+>>>>
+
 - Fase 0: Inicialização de Waiter e Chef
+
 > Sincronização
-    - Chef realiza semDown(WAITORDER), Chef espera por pedido de waiter;
+    - Chef realiza semDown(WAITORDER), Chef espera por pedido de Waiter;
     - Waiter realiza semDown(WAITREQUEST), Waiter espera por qualquer pedido;
     - Operações down realizadas em funções wait() respetivas das entidades Chef e Waiter.
 
@@ -32,7 +42,9 @@ DOWN(semaphore S)
     - Caso seja o último, incrementar semáforo FRIENDSARRIVED e permitir o avanço dos clientes para a sua próxima etapa de ciclo de vida -> semUp(FRIENDSARRIVED) * TABLESIZE-1.
     - Esperar pela chegada de todos os clientes, se não for último cliente -> semDown(FRIENDSARRIVED).
 
+- 
 - Fase 2: Pedido de comida
+- 
 
 >> Pedido do primeiro cliente -> orderFood()
 
@@ -40,7 +52,7 @@ DOWN(semaphore S)
     - Atualizar estado do primeiro cliente para FOOD_REQUEST
 > Sincronização
     - foodRequest é levantado (foodRequest = 1);
-    - Incrementar semáforo WAITERREQUEST e permitir avanço da entidade Waiter
+    - Incrementar semáforo WAITREQUEST e permitir avanço da entidade Waiter
 
 >> Esperar por comida -> waitFood()
 
@@ -51,4 +63,102 @@ DOWN(semaphore S)
 
 [waitFood() é completado numa fase posterior]
 
-(Por completar...)
+>> Processamento de pedido de comida por Waiter - waitForClientOrChef()
+Com o levatamento do semáforo WAITREQUEST:
+    - Caso foodRequest == 1, alterar foodRequest para 0 e retornar valor FOODREQ.
+
+- 
+- Fase 3: Informar Chef
+- 
+
+>> Informação de pedido ao Chef - informChef()
+
+> Atualização de estado de Waiter
+    - Atualizar estado Waiter para INFORM_CHEF.
+> Sincronização
+    - Set foodOrder = 1 na memória partilhada.
+    - semUp(WAITORDER), permitir avanço de entidade Chef no seu ciclo de vida.
+
+>> Entidade Waiter chama waitForClientOrChef(), realizando semDown(WAITREQUEST), esperando por qualquer pedido.
+
+- 
+- Fase 4: Preparação e Entrega de comida pelo Chef
+- 
+
+>> waitForOrder()
+Com o levantamento do semáforo WAITORDER:
+
+> Atualização de estado do Chef (se foodOrder == 1) // Não sei porquê a necessidade desta flag dado que já existe um semáforo para sinalizar, mas enfim
+    - Atualizar estado Chef para COOK (epic Breaking Bad reference)
+
+>> Cozedura e Entrega de comida a Waiter - processOrder()
+Após um tempo aleatório de cozedura:
+
+> Atualização de estado de Chef
+    - Atualizar estado Chef para REST
+> Sincronização
+    - Set foodReady = 1.
+    - semUp(WAITREQUEST), sinalizar Waiter de que a comida está pronta.
+
+- 
+- Fase 5: Entrega de comida aos Clientes
+- 
+
+>> waitForClientOrChef()
+Com o levantamento do semáforo WAITREQUEST:
+    - Caso foodReady == 1, alterar foodReady para 0 e retornar valor FOODREADY
+
+>> takeFoodToTable()
+
+> Atualizar estado de Waiter
+    - Atualizar estado Waiter para TAKE_TO_TABLE.
+> Sincronização
+    - semUp(FOODARRIVED), sinalizar clientes à espera de comida da sua chegada.
+
+- 
+- Fase 6: Consumo de comida pelos Clientes
+- 
+
+>> Receber comida -> waitFood() - continuação
+Com o levantamento do semáforo FOODARRIVED:
+
+> Atualizar estado de Cliente(s)
+    - Atualizar estado de cliente para EAT
+
+>> Esperar pelos outros Clientes após comer - waitAndPay()
+
+    - Incrementar tableFinishEat.
+
+> Atualizar estado de Cliente(s) (dentro do primeiro mutex)
+    - Atualizar estado de cliente para FINISHED.
+    - Se não for o último cliente a ACABAR DE COMER, atualizar estado de cliente para WAIT_FOR_OTHERS
+
+> Sincronização
+    - Se for o último cliente a CHEGAR À MESA (id == tableLast), set last = true (dentro do primeiro mutex).
+    - Se for o último cliente a ACABAR DE COMER, semUp(ALLFINISHED) * TABLESIZE, sinalizar os restantes clientes para avançar.
+    - semDown(ALLFINISHED), esperar pelos outros Clientes.
+    - Se last == true, atualizar estado do último cliente a CHEGAR À MESA para WAIT_FOR_BILL, set flag paymentRequest = 1 e semUp(WAITERREQUEST) para sinalizar waiter.
+    - O último cliente a CHEGAR À MESA espera pela fatura com semDown(REQUESTRECEIVED).
+    - Os outros clientes atualizam o seu estado para FINISHED e terminam o seu ciclo de vida.
+
+- 
+- Fase 7: Pagamento da refeição por Waiter e finalização do ciclo de vida do cliente tableLast
+- 
+
+>> waitForClientOrChef()
+Com o levantamento do semáforo WAITERREQUEST:
+    - Caso paymentRequest == 1, alterar paymentRequest para 0 e retornar valor BILL
+
+>> Receber pagamento - receivePayment()
+
+> Atualização de estado de Waiter
+    - Atualizar estado de Waiter para RECEIVE_PAYMENT.
+> Sincronização
+    - semUp(REQUESTRECEIVED), sinalizar último cliente a CHEGAR À MESA (entrega de fatura).
+
+Waiter termina o seu ciclo de vida.
+
+>> waitAndPay()
+Com o levantamento do semáforo REQUESTRECEIVED:
+    - O último cliente a CHEGAR À MESA atualiza o seu estado para FINISHED e termina o seu ciclo de vida
+
