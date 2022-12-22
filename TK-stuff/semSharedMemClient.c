@@ -191,6 +191,7 @@ static bool waitFriends(int id)
                 exit (EXIT_FAILURE);
             }
         }
+        fprintf(stderr, "\n---------Erika says : exiting the waiting friends zone with sucess---------n");
 
     }
     
