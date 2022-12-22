@@ -170,25 +170,30 @@ static bool waitFriends(int id)
 
     printf("\nClient n° : %d",n);
     
-    // Just to check if the client is the first 
-    if(sh->st.tableClients == 0){
-        sh->fSt.st.clientStat[id] = WAIT_FOR_FRIENDS;
-        tableFirst = id;
+    // Just to check if the client is the first arrived
+    if(sh->fSt.tableClients == 0){
+        sh->fSt.tableFirst = id;
+        saveState(nFic, sh->fSt);
         first = true ;
 
     }
-    
+
     // If its the last client :
-    // Unlock the all other clients
-    //if(sh->st.tableClients ==  TABLESIZE){  
-        //Erika says : how do i Up all the semaphores (excluding the last client)???
-        if( semUp(semgid, sh->friendsArrived) == -1 ){
-            perror("Error on the Up semaphore\nFirst's client couldnt wait");
-            exit (EXIT_FAILURE);
+
+    else if (sh->fSt.tableClients == TABLESIZE){
+        sh->fSt.tableLast = id ;
+        saveState(nFic, sh->fSt);
+        //Erika says : Uping the semaphores values of each client
+        for (int index = 0 ; index < TABLESIZE - 1 ; index ++){
+            if( semUp(semgid, sh->friendsArrived) == -1 ){
+                perror("Error on the Up semaphore, client couldnt transit to state");
+
+                exit (EXIT_FAILURE);
+            }
         }
-    //}
 
-
+    }
+    
     
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
     { perror ("error on the up operation for semaphore access (CT)");
@@ -201,11 +206,13 @@ static bool waitFriends(int id)
     
     // If its not the last client :
     // Lock the process, until the last one reaches the mutex zone
-    if( sh->st.tableClients !=  TABLESIZE){
-        tableLast = id ;
-        sh->st.tableClients ++ ;
+    if( sh->fSt.tableClients !=  TABLESIZE){
+        sh->fSt.tableClients ++ ;
+        sh->fSt.st.clientStat[id] = WAIT_FOR_FRIENDS;
+        saveState(nFic, sh->fSt);
         if ( semDown (semgid, sh->friendsArrived) == -1){
-            perror("Error on the Down semaphore\nLast client couldnt notify");
+            perror("Error on the Down semaphore\n");
+            printf("Client couldnt wait for others to arrive");
             exit (EXIT_FAILURE);
         }
     }
