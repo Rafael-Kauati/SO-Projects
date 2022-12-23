@@ -227,6 +227,7 @@ static void orderFood (int id)
 
     // Atualizar estado
     sh->fSt.st.clientStat[id] = FOOD_REQUEST;
+    sh->fSt.foodRequest = 1;
     saveState(nFic, &sh->fSt);
 
     if (semUp (semgid, sh->mutex) == -1)                                                      /* exit critical region */
